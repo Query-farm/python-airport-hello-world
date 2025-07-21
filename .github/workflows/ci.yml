@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the latest version of rye
+        uses: eifinger/setup-rye@v4
+
+      - name: Add Python to PATH
+        run: echo "$(rye show python-path | head -n 1 | xargs dirname | xargs dirname)/bin" >> $GITHUB_PATH
+
+      - name: Cache Rye
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/rye
+            ~/.rye
+          key: ${{ runner.os }}-rye-${{ hashFiles('**/pyproject.toml', '**/pyproject.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rye-
+
+      - name: Sync dependencies
+        run: rye sync
+
+      - name: Lint & Format (Ruff)
+        run: rye run ruff check .
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GOOGLE_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+
+      - name: Set up Docker to use gcloud as a credential helper
+        run: |
+          gcloud auth configure-docker us-east1-docker.pkg.dev
+
+      - name: Build docker image
+        run: |
+          IMAGE_NAME="us-east1-docker.pkg.dev/airport-ci-service/airport-ci-service/python-airport-hello-world-server"
+          rye build --wheel --clean
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ github.sha }} .
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ github.sha }}
+
+
