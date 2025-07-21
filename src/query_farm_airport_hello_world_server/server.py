@@ -1,14 +1,10 @@
 import datetime
 import hashlib
-import json
-import random
 import re
-import uuid
 from collections.abc import Generator, Iterator
 from typing import Any, TypeVar
 
 import click
-import petname
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.flight as flight
@@ -515,7 +511,7 @@ class InMemoryArrowFlightServer(base_server.BasicFlightServer[auth.Account, auth
                         raise flight.FlightServerError("Inserts must be done one row at a time to the chat table.")
 
                     new_row = new_rows.to_pylist()[0]
-                    new_row["timestamp"] = datetime.datetime.now(datetime.timezone.utc)
+                    new_row["timestamp"] = datetime.datetime.now(datetime.UTC)
 
                     header_middleware = context.context.get_middleware("headers")
                     assert header_middleware

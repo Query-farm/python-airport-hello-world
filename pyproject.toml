@@ -6,8 +6,7 @@ authors = [
     { name = "Rusty Conover", email = "rusty@query.farm" }
 ]
 dependencies = [
-    "query-farm-flight-server>=0.1.5",
-    "petname>=2.6",
+    "query-farm-flight-server>=0.1.5"
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
